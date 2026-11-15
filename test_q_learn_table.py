@@ -17,6 +17,5 @@ def test_q_table_reaches_goal(maze, goal):
     env = Environment(maze, goal)
     q_func = learn_table(env, MAZE_ACTIONS)
 
-    __import__("pdb").set_trace()
     path = walk(env, q_func, MAZE_ACTIONS)
     assert path[-1] == env.goal
