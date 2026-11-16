@@ -114,6 +114,7 @@ def learn(env: Environment, action_space, encoder, seed=None):
     # training ones undertrained
     evals_to_stop = 5
     successful_evals = 0
+    tau = 0.005
 
     policy = EGreedyPolicy(q_net_online, encoder, action_space, epsilon=0.2)
 
@@ -121,7 +122,7 @@ def learn(env: Environment, action_space, encoder, seed=None):
         state = env.reset()
         goal = env.goal
 
-        epsilon = max(epsilon_min, epsilon_decay**episode)
+        policy.epsilon = max(epsilon_min, epsilon_decay**episode)
 
         for _ in range(max_steps):
             action_index = policy.select_action(state, goal)
@@ -167,11 +168,15 @@ def learn(env: Environment, action_space, encoder, seed=None):
                 loss.backward()
                 optimizer.step()
 
+                with torch.no_grad():
+                    for target_param, online_param in zip(
+                        q_net_target.parameters(), q_net_online.parameters()
+                    ):
+                        target_param.lerp_(online_param, tau)
+
             state = next_state
             if done:
                 break
-
-        q_net_target.load_state_dict(q_net_online.state_dict())
 
         if episode % eval_every == 0:
             if _reaches_all_goals(env, q_net_target, encoder, action_space):
